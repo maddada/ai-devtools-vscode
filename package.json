@@ -2,7 +2,7 @@
   "name": "ai-devtools-vscode",
   "displayName": "AI DevTools",
   "description": "View and debug Claude Code conversations",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "publisher": "ai-devtools",
   "engines": {
     "vscode": "^1.85.0"
