@@ -1,13 +1,11 @@
 # AI Dev Tools VS Code Extension Project
 
-<TODO: add summary here>
+Lets you debug Claude Code chat history for the currently open project to know where and why things went wrong.
 
-## Features:
+Shows all hidden system messages and tool calls that happen behind the scenes.
 
-<TODO>
+Also lets you easily view full subagent conversations and compaction summaries.
 
-## Commands available:
+Note: All of this info is stored in your ~/.claude/projects folder and this extension only display the info in that file in a nicely formatted way
 
-## How to Test:
-
-<TODO>
+<img width="2218" height="1683" alt="2026-01-09_Code_12-27-17" src="https://github.com/user-attachments/assets/cf4dad78-13d7-4748-8fb0-092b626a4ac3" />
