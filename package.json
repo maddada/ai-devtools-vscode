@@ -3,6 +3,12 @@
   "displayName": "AI DevTools",
   "description": "View and debug Claude Code conversations",
   "version": "1.0.0",
+  "repository": {
+    "url": "https://github.com/maddada/ai-devtools-vscode.git",
+    "type": "git",
+    "directory": ""
+  },
+  "license": "GPL-3.0",
   "publisher": "ai-devtools",
   "engines": {
     "vscode": "^1.85.0"
@@ -28,6 +34,7 @@
       "ai-devtools": [
         {
           "id": "aiDevtools.conversations",
+          "type": "webview",
           "name": "Conversations",
           "icon": "media/icon.svg",
           "contextualTitle": "AI DevTools"
@@ -60,6 +67,11 @@
         "icon": "$(filter)"
       },
       {
+        "command": "ai-devtools.toggleTimeFilter",
+        "title": "AI DevTools: Toggle Time Filter (Recent/All)",
+        "icon": "$(history)"
+      },
+      {
         "command": "ai-devtools.suspend",
         "title": "AI DevTools: Suspend (Release Memory)",
         "icon": "$(debug-pause)"
@@ -68,21 +80,27 @@
     "menus": {
       "view/title": [
         {
-          "command": "ai-devtools.toggleScope",
+          "command": "ai-devtools.toggleTimeFilter",
           "when": "view == aiDevtools.conversations",
           "group": "navigation@1"
         },
         {
-          "command": "ai-devtools.refresh",
+          "command": "ai-devtools.toggleScope",
           "when": "view == aiDevtools.conversations",
           "group": "navigation@2"
+        },
+        {
+          "command": "ai-devtools.refresh",
+          "when": "view == aiDevtools.conversations",
+          "group": "navigation@3"
         }
       ]
     }
   },
   "scripts": {
-    "vscode:prepublish": "bun run build",
-    "build": "bun run build:css && bun run build:extension && bun run build:webview",
+    "vscode:prepublish": "bun run compile",
+    "compile": "bun run build:css && bun run build:extension && bun run build:webview",
+    "build": "bun run compile && npx vsce package --no-dependencies --no-update-package-json",
     "build:css": "bunx --bun @tailwindcss/cli -i src/webview/index.css -o dist/webview.css --minify",
     "build:extension": "bun run esbuild.extension.ts",
     "build:webview": "bun run esbuild.webview.ts",

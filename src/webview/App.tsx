@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { Toaster } from "@/components/ui/sonner";
-import { Download, FileUp, MessageSquareText, Loader2 } from "lucide-react";
+import { Download, FileUp, MessageSquareText, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -59,7 +59,9 @@ if (initialDark) {
 export function App() {
   const [conversations, setConversations] = useState<ParsedLine[]>([]);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [filePath, setFilePath] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isDarkMode] = useState(getInitialTheme);
 
   useEffect(() => {
@@ -78,10 +80,12 @@ export function App() {
       switch (message.command) {
         case 'loadConversation':
           setIsLoading(true);
+          setIsRefreshing(false);
           try {
             const parsed = parseJsonlContent(message.content);
             setConversations(parsed);
             setFileName(message.fileName);
+            setFilePath(message.filePath);
           } finally {
             setIsLoading(false);
           }
@@ -98,6 +102,13 @@ export function App() {
       window.removeEventListener('message', handleMessage);
     };
   }, []);
+
+  // Refresh the current conversation
+  const handleRefresh = useCallback(() => {
+    if (!filePath) return;
+    setIsRefreshing(true);
+    vscode.postMessage({ command: 'refreshConversation', filePath });
+  }, [filePath]);
 
   // Detect if this is an agent file and extract agentId
   const agentId = useMemo(() => {
@@ -203,6 +214,16 @@ export function App() {
               {conversations.filter((c) => c.type !== "x-error").length}{" "}
               messages
             </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing || !filePath}
+              title="Refresh conversation"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
             <ExportDialog
               conversations={conversations}
               fileName={fileName || "conversation.jsonl"}

@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
-import { ConversationTreeProvider, type ConversationScope } from './ConversationTreeProvider';
+import { SidebarViewProvider, type ConversationScope } from './SidebarViewProvider';
 import { readJsonlFileAsync, type ConversationFile } from './fileSystem';
 
 let currentPanel: vscode.WebviewPanel | undefined = undefined;
-let treeProvider: ConversationTreeProvider | undefined = undefined;
+let sidebarProvider: SidebarViewProvider | undefined = undefined;
 let isSuspended: boolean = false;
 
 /**
@@ -17,17 +17,6 @@ function getWorkspacePath(): string | null {
   return null;
 }
 
-/**
- * Update the tree view title based on scope
- */
-function updateTreeViewTitle(treeView: vscode.TreeView<unknown>, scope: ConversationScope): void {
-  if (scope === 'current') {
-    treeView.title = 'Current Project';
-  } else {
-    treeView.title = 'All Projects';
-  }
-}
-
 export function activate(context: vscode.ExtensionContext) {
   console.log('AI DevTools extension is now active');
 
@@ -35,22 +24,20 @@ export function activate(context: vscode.ExtensionContext) {
   const workspacePath = getWorkspacePath();
   console.log('Workspace path:', workspacePath);
 
-  // Create and register the tree view provider with workspace path
-  treeProvider = new ConversationTreeProvider(workspacePath ?? undefined);
-  const treeView = vscode.window.createTreeView('aiDevtools.conversations', {
-    treeDataProvider: treeProvider,
-    showCollapseAll: true
-  });
-  context.subscriptions.push(treeView);
-
-  // Set initial title based on scope
-  updateTreeViewTitle(treeView, treeProvider.scope);
+  // Create and register the sidebar webview provider
+  sidebarProvider = new SidebarViewProvider(context.extensionUri, workspacePath ?? undefined);
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(
+      SidebarViewProvider.viewType,
+      sidebarProvider
+    )
+  );
 
   // Watch for workspace folder changes
   const workspaceWatcher = vscode.workspace.onDidChangeWorkspaceFolders(() => {
     const newWorkspacePath = getWorkspacePath();
-    if (treeProvider) {
-      treeProvider.setWorkspacePath(newWorkspacePath);
+    if (sidebarProvider) {
+      sidebarProvider.setWorkspacePath(newWorkspacePath);
     }
     console.log('Workspace changed to:', newWorkspacePath);
   });
@@ -63,8 +50,8 @@ export function activate(context: vscode.ExtensionContext) {
       isSuspended = false;
       vscode.window.showInformationMessage('AI DevTools resumed');
     }
-    if (treeProvider) {
-      treeProvider.refresh();
+    if (sidebarProvider) {
+      sidebarProvider.refresh();
       vscode.window.showInformationMessage('Refreshed conversations');
     }
   });
@@ -72,14 +59,23 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Register toggle scope command
   const toggleScopeCommand = vscode.commands.registerCommand('ai-devtools.toggleScope', () => {
-    if (treeProvider) {
-      const newScope = treeProvider.toggleScope();
-      updateTreeViewTitle(treeView, newScope);
+    if (sidebarProvider) {
+      const newScope = sidebarProvider.toggleScope();
       const scopeLabel = newScope === 'current' ? 'Current Project' : 'All Projects';
       vscode.window.showInformationMessage(`Showing: ${scopeLabel}`);
     }
   });
   context.subscriptions.push(toggleScopeCommand);
+
+  // Register toggle time filter command
+  const toggleTimeFilterCommand = vscode.commands.registerCommand('ai-devtools.toggleTimeFilter', () => {
+    if (sidebarProvider) {
+      const showingAll = sidebarProvider.toggleTimeFilter();
+      const label = showingAll ? 'Showing all conversations' : 'Showing recent (last 7 days)';
+      vscode.window.showInformationMessage(label);
+    }
+  });
+  context.subscriptions.push(toggleTimeFilterCommand);
 
   // Register open conversation command (called when clicking a file in the tree)
   const openConversationCommand = vscode.commands.registerCommand(
@@ -105,9 +101,9 @@ export function activate(context: vscode.ExtensionContext) {
       currentPanel = undefined;
     }
 
-    // Clear caches in the tree provider
-    if (treeProvider) {
-      treeProvider.clearCache();
+    // Clear caches in the sidebar provider
+    if (sidebarProvider) {
+      sidebarProvider.clearCache();
     }
 
     isSuspended = true;
@@ -115,12 +111,12 @@ export function activate(context: vscode.ExtensionContext) {
   });
   context.subscriptions.push(suspendCommand);
 
-  // Add tree provider disposal to subscriptions
+  // Add sidebar provider disposal to subscriptions
   context.subscriptions.push({
     dispose: () => {
-      if (treeProvider) {
-        treeProvider.dispose();
-        treeProvider = undefined;
+      if (sidebarProvider) {
+        sidebarProvider.dispose();
+        sidebarProvider = undefined;
       }
     }
   });
@@ -161,7 +157,7 @@ function openConversationViewer(
 
     // Handle messages from the webview
     currentPanel.webview.onDidReceiveMessage(
-      message => {
+      async message => {
         switch (message.command) {
           case 'alert':
             vscode.window.showInformationMessage(message.text);
@@ -170,6 +166,18 @@ function openConversationViewer(
             // Webview is ready, send conversation if we have one
             if (conversationFile && currentPanel) {
               sendConversationToWebview(currentPanel, conversationFile);
+            }
+            return;
+          case 'refreshConversation':
+            // Reload the JSONL file and send updated content
+            if (message.filePath && currentPanel) {
+              const refreshFile: ConversationFile = {
+                name: message.filePath.split('/').pop() || 'conversation.jsonl',
+                path: message.filePath,
+                date: new Date(),
+                size: 0
+              };
+              await sendConversationToWebview(currentPanel, refreshFile);
             }
             return;
         }
@@ -252,9 +260,9 @@ export function deactivate() {
     currentPanel.dispose();
     currentPanel = undefined;
   }
-  if (treeProvider) {
-    treeProvider.dispose();
-    treeProvider = undefined;
+  if (sidebarProvider) {
+    sidebarProvider.dispose();
+    sidebarProvider = undefined;
   }
   isSuspended = false;
 }

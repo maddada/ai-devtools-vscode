@@ -1,3 +1,4 @@
+export { ChatNavigationButtons } from "./ChatNavigationButtons";
 export { ConversationList } from "./ConversationList";
 export { ConversationItem } from "./ConversationItem";
 export { AssistantConversationContent } from "./AssistantConversationContent";

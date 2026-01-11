@@ -1,5 +1,5 @@
 import { Download, FileUp, FolderOpen, MessageSquareText } from "lucide-react";
-import { type FC, useCallback, useEffect, useMemo, useState } from "react";
+import { type FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +10,7 @@ import {
   type ErrorJsonl,
 } from "@/lib/conversation-schema";
 import type { ToolResultContent } from "@/lib/conversation-schema/content/ToolResultContentSchema";
-import { ConversationList } from "./conversation";
+import { ChatNavigationButtons, ConversationList } from "./conversation";
 import { ExportDialog } from "./ExportDialog";
 
 type ParsedLine = Conversation | ErrorJsonl;
@@ -41,6 +41,7 @@ export const ConversationViewer: FC<ConversationViewerProps> = ({ file, onSelect
   const [conversations, setConversations] = useState<ParsedLine[]>([]);
   const [fileName, setFileName] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const mainContainerRef = useRef<HTMLElement>(null);
 
   const handleFileLoad = useCallback((fileToLoad: File) => {
     const reader = new FileReader();
@@ -255,7 +256,7 @@ export const ConversationViewer: FC<ConversationViewerProps> = ({ file, onSelect
           </div>
         </div>
       </header>
-      <main className="flex-1 overflow-y-auto scrollbar-thin">
+      <main ref={mainContainerRef} className="flex-1 overflow-y-auto scrollbar-thin">
         <div className="max-w-4xl mx-auto px-4 py-6">
           <ConversationList
             conversations={conversations}
@@ -263,6 +264,7 @@ export const ConversationViewer: FC<ConversationViewerProps> = ({ file, onSelect
           />
         </div>
       </main>
+      <ChatNavigationButtons containerRef={mainContainerRef} />
     </div>
   );
 };

@@ -180,6 +180,7 @@ export const ConversationList: FC<ConversationListProps> = ({
               isLeftAligned ? "justify-start" : "justify-end"
             } animate-in fade-in slide-in-from-bottom-2 duration-300`}
             key={getConversationKey(conversation)}
+            data-message-type={conversation.type}
           >
             <div className="w-full max-w-3xl lg:max-w-4xl sm:w-[90%] md:w-[85%] group/message relative">
               <div
