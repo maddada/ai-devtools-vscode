@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
-export const MIN_FILE_SIZE = 5 * 1024; // 5KB minimum
+export const MIN_FILE_SIZE = 1 * 1024; // 1KB minimum
 export const MAX_FILE_SIZE_FOR_FULL_READ = 50 * 1024 * 1024; // 50MB limit for full file reads
 export const SUMMARY_CHUNK_SIZE = 50 * 1024; // 50KB for summary extraction
 

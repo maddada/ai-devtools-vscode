@@ -1,7 +1,7 @@
 import { getCachedFile, cacheFile } from '@/lib/cache';
 
 const HANDLE_STORAGE_KEY = 'convo-viewer-dir-handle';
-export const MIN_FILE_SIZE = 5 * 1024; // 5KB minimum
+export const MIN_FILE_SIZE = 1 * 1024; // 1KB minimum
 
 export interface JsonlFile {
   name: string;
