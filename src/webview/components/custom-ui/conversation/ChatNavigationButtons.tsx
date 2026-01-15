@@ -9,73 +9,105 @@ type ChatNavigationButtonsProps = {
 export const ChatNavigationButtons: FC<ChatNavigationButtonsProps> = ({
   containerRef,
 }) => {
-  const [currentUserIndex, setCurrentUserIndex] = useState(-1);
-  const [currentAssistantIndex, setCurrentAssistantIndex] = useState(-1);
+  const [currentIndex, setCurrentIndex] = useState(-1);
 
+  // Get all user text messages
   const getUserMessages = useCallback(() => {
     if (!containerRef.current) return [];
     return Array.from(
-      containerRef.current.querySelectorAll('[data-message-type="user"]')
+      containerRef.current.querySelectorAll('[data-user-text-message="true"]')
     );
   }, [containerRef]);
 
-  const getAssistantMessages = useCallback(() => {
-    if (!containerRef.current) return [];
-    return Array.from(
-      containerRef.current.querySelectorAll('[data-message-type="assistant"]')
-    );
+  // Get the last AI response in the conversation
+  const getLastAIResponse = useCallback(() => {
+    if (!containerRef.current) return null;
+    const responses = containerRef.current.querySelectorAll('[data-final-response="true"]');
+    return responses.length > 0 ? responses[responses.length - 1] : null;
   }, [containerRef]);
 
   const scrollToElement = useCallback((element: Element) => {
     element.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
 
-  const jumpToFirstUserMessage = useCallback(() => {
+  // Jump to first user message
+  const jumpToFirst = useCallback(() => {
     const userMessages = getUserMessages();
     if (userMessages.length > 0) {
       scrollToElement(userMessages[0]);
-      setCurrentUserIndex(0);
+      setCurrentIndex(0);
     }
   }, [getUserMessages, scrollToElement]);
 
-  const jumpToLastAssistantMessage = useCallback(() => {
-    const assistantMessages = getAssistantMessages();
-    if (assistantMessages.length > 0) {
-      scrollToElement(assistantMessages[assistantMessages.length - 1]);
-      setCurrentAssistantIndex(assistantMessages.length - 1);
+  // Jump to last AI response
+  const jumpToLast = useCallback(() => {
+    const lastResponse = getLastAIResponse();
+    if (lastResponse) {
+      scrollToElement(lastResponse);
+      const userMessages = getUserMessages();
+      setCurrentIndex(userMessages.length); // Set beyond user messages
     }
-  }, [getAssistantMessages, scrollToElement]);
+  }, [getLastAIResponse, getUserMessages, scrollToElement]);
 
-  const jumpToPreviousUserMessage = useCallback(() => {
+  // Previous user message
+  const jumpToPrevious = useCallback(() => {
     const userMessages = getUserMessages();
     if (userMessages.length === 0) return;
 
-    const nextIndex =
-      currentUserIndex <= 0 ? userMessages.length - 1 : currentUserIndex - 1;
-    scrollToElement(userMessages[nextIndex]);
-    setCurrentUserIndex(nextIndex);
-  }, [getUserMessages, scrollToElement, currentUserIndex]);
+    // If we're at or beyond the last user message, go to last user message
+    if (currentIndex >= userMessages.length) {
+      setCurrentIndex(userMessages.length - 1);
+      scrollToElement(userMessages[userMessages.length - 1]);
+      return;
+    }
 
-  const jumpToNextAssistantMessage = useCallback(() => {
-    const assistantMessages = getAssistantMessages();
-    if (assistantMessages.length === 0) return;
+    // Go to previous, or wrap to last AI response
+    if (currentIndex <= 0) {
+      // Already at first, stay there
+      scrollToElement(userMessages[0]);
+      setCurrentIndex(0);
+    } else {
+      const newIndex = currentIndex - 1;
+      scrollToElement(userMessages[newIndex]);
+      setCurrentIndex(newIndex);
+    }
+  }, [getUserMessages, scrollToElement, currentIndex]);
 
-    const nextIndex =
-      currentAssistantIndex >= assistantMessages.length - 1
-        ? 0
-        : currentAssistantIndex + 1;
-    scrollToElement(assistantMessages[nextIndex]);
-    setCurrentAssistantIndex(nextIndex);
-  }, [getAssistantMessages, scrollToElement, currentAssistantIndex]);
+  // Next user message, or last AI response if at end
+  const jumpToNext = useCallback(() => {
+    const userMessages = getUserMessages();
+    if (userMessages.length === 0) return;
 
-  // Reset indices when container changes
+    // If not started yet, go to first
+    if (currentIndex < 0) {
+      scrollToElement(userMessages[0]);
+      setCurrentIndex(0);
+      return;
+    }
+
+    // If at or past last user message, go to last AI response
+    if (currentIndex >= userMessages.length - 1) {
+      const lastResponse = getLastAIResponse();
+      if (lastResponse) {
+        scrollToElement(lastResponse);
+        setCurrentIndex(userMessages.length);
+      }
+      return;
+    }
+
+    // Go to next user message
+    const newIndex = currentIndex + 1;
+    scrollToElement(userMessages[newIndex]);
+    setCurrentIndex(newIndex);
+  }, [getUserMessages, getLastAIResponse, scrollToElement, currentIndex]);
+
+  // Reset index when container changes
   useEffect(() => {
-    setCurrentUserIndex(-1);
-    setCurrentAssistantIndex(-1);
+    setCurrentIndex(-1);
   }, [containerRef]);
 
   const buttonBaseClasses = cn(
-    "size-[50px] rounded-full flex items-center justify-center",
+    "size-10 rounded-full flex items-center justify-center",
     "bg-muted/80 backdrop-blur-sm border border-border/50",
     "opacity-40 hover:opacity-100 transition-all duration-200",
     "hover:bg-muted hover:border-border hover:shadow-lg",
@@ -86,36 +118,36 @@ export const ChatNavigationButtons: FC<ChatNavigationButtonsProps> = ({
   return (
     <div className="fixed bottom-6 right-6 flex flex-col gap-2 z-50">
       <button
-        onClick={jumpToFirstUserMessage}
+        onClick={jumpToFirst}
         className={buttonBaseClasses}
         title="Jump to first user message"
         aria-label="Jump to first user message"
       >
-        <ChevronsUp className="size-6 text-foreground" />
+        <ChevronsUp className="size-5 text-foreground" />
       </button>
       <button
-        onClick={jumpToPreviousUserMessage}
+        onClick={jumpToPrevious}
         className={buttonBaseClasses}
         title="Previous user message"
         aria-label="Previous user message"
       >
-        <ChevronUp className="size-6 text-foreground" />
+        <ChevronUp className="size-5 text-foreground" />
       </button>
       <button
-        onClick={jumpToNextAssistantMessage}
+        onClick={jumpToNext}
         className={buttonBaseClasses}
-        title="Next AI response"
-        aria-label="Next AI response"
+        title="Next user message"
+        aria-label="Next user message"
       >
-        <ChevronDown className="size-6 text-foreground" />
+        <ChevronDown className="size-5 text-foreground" />
       </button>
       <button
-        onClick={jumpToLastAssistantMessage}
+        onClick={jumpToLast}
         className={buttonBaseClasses}
         title="Jump to last AI response"
         aria-label="Jump to last AI response"
       >
-        <ChevronsDown className="size-6 text-foreground" />
+        <ChevronsDown className="size-5 text-foreground" />
       </button>
     </div>
   );

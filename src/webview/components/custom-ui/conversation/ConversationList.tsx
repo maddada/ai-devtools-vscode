@@ -119,6 +119,21 @@ type ConversationListProps = {
   getToolResult: (toolUseId: string) => ToolResultContent | undefined;
 };
 
+// Check if a user message contains actual user text (not just tool results)
+const isUserTextMessage = (conversation: Conversation): boolean => {
+  if (conversation.type !== "user") return false;
+  const content = conversation.message.content;
+  if (typeof content === "string") return content.trim().length > 0;
+  if (Array.isArray(content)) {
+    return content.some((item) => {
+      if (typeof item === "string") return item.trim().length > 0;
+      if (item.type === "text") return item.text.trim().length > 0;
+      return false;
+    });
+  }
+  return false;
+};
+
 export const ConversationList: FC<ConversationListProps> = ({
   conversations,
   getToolResult,
@@ -137,9 +152,43 @@ export const ConversationList: FC<ConversationListProps> = ({
     return nonSpecialConvos.every((c) => c.isSidechain === true);
   }, [conversations]);
 
+  // Build a set of assistant message indices that are "final responses"
+  // (i.e., the last assistant message before a user text message)
+  const finalResponseIndices = useMemo(() => {
+    const indices = new Set<number>();
+    for (let i = 0; i < conversations.length; i++) {
+      const conv = conversations[i];
+      if (conv.type !== "user" || !isUserTextMessage(conv)) continue;
+
+      // Look backwards to find the last assistant message
+      for (let j = i - 1; j >= 0; j--) {
+        const prev = conversations[j];
+        if (prev.type === "assistant") {
+          indices.add(j);
+          break;
+        }
+        // Skip over non-message types
+        if (prev.type === "x-error" || prev.type === "summary" ||
+            prev.type === "file-history-snapshot" || prev.type === "queue-operation") {
+          continue;
+        }
+        // If we hit another user message, stop looking
+        if (prev.type === "user") break;
+      }
+    }
+    // Also mark the very last assistant message as final
+    for (let i = conversations.length - 1; i >= 0; i--) {
+      if (conversations[i].type === "assistant") {
+        indices.add(i);
+        break;
+      }
+    }
+    return indices;
+  }, [conversations]);
+
   return (
     <ul className="space-y-2">
-      {conversations.flatMap((conversation) => {
+      {conversations.flatMap((conversation, index) => {
         if (conversation.type === "x-error") {
           return (
             <SchemaErrorDisplay
@@ -174,6 +223,10 @@ export const ConversationList: FC<ConversationListProps> = ({
           conversation.type === "system" ||
           conversation.type === "summary";
 
+        // Determine navigation data attributes
+        const isRealUserMessage = isUserTextMessage(conversation);
+        const isFinalResponse = finalResponseIndices.has(index);
+
         return [
           <li
             className={`w-full flex ${
@@ -181,6 +234,8 @@ export const ConversationList: FC<ConversationListProps> = ({
             } animate-in fade-in slide-in-from-bottom-2 duration-300`}
             key={getConversationKey(conversation)}
             data-message-type={conversation.type}
+            data-user-text-message={isRealUserMessage ? "true" : undefined}
+            data-final-response={isFinalResponse ? "true" : undefined}
           >
             <div className="w-full max-w-3xl lg:max-w-4xl sm:w-[90%] md:w-[85%] group/message relative">
               <div

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { Download, FileUp, MessageSquareText, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import {
   type ErrorJsonl,
 } from "@/lib/conversation-schema";
 import type { ToolResultContent } from "@/lib/conversation-schema/content/ToolResultContentSchema";
-import { ConversationList } from "@/components/custom-ui/conversation";
+import { ChatNavigationButtons, ConversationList } from "@/components/custom-ui/conversation";
 import { ExportDialog } from "@/components/custom-ui/ExportDialog";
 
 // Declare the VS Code API type
@@ -63,6 +63,7 @@ export function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isDarkMode] = useState(getInitialTheme);
+  const mainContainerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     localStorage.setItem(THEME_KEY, isDarkMode ? 'dark' : 'light');
@@ -236,7 +237,7 @@ export function App() {
           </div>
         </div>
       </header>
-      <main className="flex-1 overflow-y-auto scrollbar-thin">
+      <main ref={mainContainerRef} className="flex-1 overflow-y-auto scrollbar-thin">
         <div className="max-w-4xl mx-auto px-4 py-6">
           <ConversationList
             conversations={conversations}
@@ -244,6 +245,7 @@ export function App() {
           />
         </div>
       </main>
+      <ChatNavigationButtons containerRef={mainContainerRef} />
       <Toaster />
     </div>
   );

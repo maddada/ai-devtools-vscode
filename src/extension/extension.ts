@@ -48,11 +48,11 @@ export function activate(context: vscode.ExtensionContext) {
     if (isSuspended) {
       // Resume from suspended state
       isSuspended = false;
-      vscode.window.showInformationMessage('AI DevTools resumed');
+      // vscode.window.showInformationMessage('AI DevTools resumed');
     }
     if (sidebarProvider) {
       sidebarProvider.refresh();
-      vscode.window.showInformationMessage('Refreshed conversations');
+      // vscode.window.showInformationMessage('Refreshed conversations');
     }
   });
   context.subscriptions.push(refreshCommand);
@@ -62,7 +62,7 @@ export function activate(context: vscode.ExtensionContext) {
     if (sidebarProvider) {
       const newScope = sidebarProvider.toggleScope();
       const scopeLabel = newScope === 'current' ? 'Current Project' : 'All Projects';
-      vscode.window.showInformationMessage(`Showing: ${scopeLabel}`);
+      // vscode.window.showInformationMessage(`Showing: ${scopeLabel}`);
     }
   });
   context.subscriptions.push(toggleScopeCommand);
@@ -72,7 +72,7 @@ export function activate(context: vscode.ExtensionContext) {
     if (sidebarProvider) {
       const showingAll = sidebarProvider.toggleTimeFilter();
       const label = showingAll ? 'Showing all conversations' : 'Showing recent (last 7 days)';
-      vscode.window.showInformationMessage(label);
+      // vscode.window.showInformationMessage(label);
     }
   });
   context.subscriptions.push(toggleTimeFilterCommand);
@@ -107,7 +107,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     isSuspended = true;
-    vscode.window.showInformationMessage('AI DevTools suspended - memory released. Use Refresh to resume.');
+    // vscode.window.showInformationMessage('AI DevTools suspended - memory released. Use Refresh to resume.');
   });
   context.subscriptions.push(suspendCommand);
 
@@ -160,7 +160,7 @@ function openConversationViewer(
       async message => {
         switch (message.command) {
           case 'alert':
-            vscode.window.showInformationMessage(message.text);
+            // vscode.window.showInformationMessage(message.text);
             return;
           case 'ready':
             // Webview is ready, send conversation if we have one
@@ -204,7 +204,7 @@ async function sendConversationToWebview(
   try {
     const content = await readJsonlFileAsync(conversationFile.path);
     if (content === null) {
-      vscode.window.showErrorMessage('Failed to read conversation file: File is too large or could not be read');
+      // vscode.window.showErrorMessage('Failed to read conversation file: File is too large or could not be read');
       return;
     }
     panel.title = `AI DevTools - ${conversationFile.name}`;
@@ -215,7 +215,7 @@ async function sendConversationToWebview(
       content: content
     });
   } catch (error) {
-    vscode.window.showErrorMessage(`Failed to read conversation file: ${error}`);
+    // vscode.window.showErrorMessage(`Failed to read conversation file: ${error}`);
   }
 }
 
