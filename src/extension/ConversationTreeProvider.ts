@@ -4,7 +4,7 @@ import {
   encodeWorkspacePath,
   formatFileSize,
   formatDate,
-  claudeProjectsExist,
+  conversationStoresExist,
   loadFolderSummaries,
   type ConversationFile,
   type FolderNode
@@ -70,7 +70,7 @@ export class ConversationTreeItem extends vscode.TreeItem {
 }
 
 /**
- * Tree data provider for Claude Code conversations
+ * Tree data provider for AI assistant conversations
  */
 export class ConversationTreeProvider implements vscode.TreeDataProvider<ConversationTreeItem> {
   private _onDidChangeTreeData: vscode.EventEmitter<ConversationTreeItem | undefined | null | void> =
@@ -190,7 +190,7 @@ export class ConversationTreeProvider implements vscode.TreeDataProvider<Convers
   }
 
   getChildren(element?: ConversationTreeItem): Thenable<ConversationTreeItem[]> {
-    if (!claudeProjectsExist()) {
+    if (!conversationStoresExist()) {
       // Return empty array - the welcome view will be shown
       return Promise.resolve([]);
     }

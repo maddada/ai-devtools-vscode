@@ -8,7 +8,7 @@ export const SystemEntrySchema = BaseEntrySchema.extend({
   // required
   content: z.string(),
   toolUseID: z.string(),
-  level: z.enum(["info"]),
+  level: z.enum(["info", "suggestion", "warning", "error"]),
 });
 
 export type SystemEntry = z.infer<typeof SystemEntrySchema>;

@@ -182,7 +182,7 @@ export function App() {
               <div className="text-xs text-muted-foreground space-y-1 mt-4">
                 <p className="font-medium text-foreground/80">What you'll see:</p>
                 <ul className="list-disc list-inside text-left inline-block">
-                  <li>Full conversation history with Claude Code</li>
+                  <li>Full conversation history with Claude Code or Codex</li>
                   <li>All tool calls and their results</li>
                   <li>System messages and interactions</li>
                   <li>Behind-the-scenes details</li>

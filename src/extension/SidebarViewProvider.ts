@@ -4,9 +4,11 @@ import {
   encodeWorkspacePath,
   formatFileSize,
   formatDate,
-  claudeProjectsExist,
+  conversationStoresExist,
   loadFolderSummaries,
   getHomeDirectory,
+  type ConversationProfile,
+  type ConversationSource,
   type ConversationFile,
   type FolderNode
 } from './fileSystem';
@@ -50,6 +52,13 @@ function getEncodedHomePrefix(): string {
  * Only decodes known directory prefixes, keeps project name with dashes intact
  */
 function formatFolderDisplayName(encodedName: string): string {
+  if (encodedName === '__codex_unknown__') {
+    return 'Codex (Unknown Workspace)';
+  }
+  if (encodedName === '-') {
+    return '/';
+  }
+
   // Check cache first
   const cached = folderDisplayNameCache.get(encodedName);
   if (cached) return cached;
@@ -93,6 +102,25 @@ function formatFolderDisplayName(encodedName: string): string {
   // Cache the result
   folderDisplayNameCache.set(encodedName, result);
   return result;
+}
+
+function inferConversationSource(filePath: string): ConversationSource {
+  const normalized = filePath.replace(/\\/g, '/');
+  if (normalized.includes('/.codex/') || normalized.includes('/.codex-profiles/')) {
+    return 'Codex';
+  }
+  return 'Claude';
+}
+
+function inferConversationProfile(filePath: string): ConversationProfile | undefined {
+  const normalized = filePath.replace(/\\/g, '/');
+  if (normalized.includes('/.claude-profiles/work/') || normalized.includes('/.codex-profiles/work/')) {
+    return 'Work';
+  }
+  if (normalized.includes('/.claude-profiles/personal/') || normalized.includes('/.codex-profiles/personal/')) {
+    return 'Personal';
+  }
+  return undefined;
 }
 
 export type ConversationScope = 'current' | 'all';
@@ -260,13 +288,13 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
       data: data,
       scope: this._scope,
       filter: this._filterText,
-      hasProjects: claudeProjectsExist(),
+      hasProjects: conversationStoresExist(),
       showAllTime: this._showAllTime,
       expandedFolders: expandedFolders
     });
   }
 
-  private _getFilteredData(): Array<{ folder: string; displayName: string; files: Array<{ name: string; path: string; size: string; summary: string; date: string; timestamp: number }>; totalFiles: number }> {
+  private _getFilteredData(): Array<{ folder: string; displayName: string; files: Array<{ name: string; path: string; size: string; summary: string; date: string; timestamp: number; source: ConversationSource; profile?: ConversationProfile }>; totalFiles: number }> {
     let foldersToShow: FolderNode[];
 
     if (this._scope === 'current' && this._currentProjectFolderName) {
@@ -309,7 +337,9 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
           size: formatFileSize(f.size),
           summary: f.summary || '',
           date: formatDate(f.lastModified),
-          timestamp: f.lastModified.getTime()
+          timestamp: f.lastModified.getTime(),
+          source: f.source ?? inferConversationSource(f.path),
+          profile: f.profile ?? inferConversationProfile(f.path)
         }))
       };
     }).filter(f => f.files.length > 0);
@@ -511,7 +541,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
       scopeLabel.textContent = (scope === 'current' ? 'Current Project' : 'All Projects') + timeLabel;
 
       if (!hasProjects) {
-        listEl.innerHTML = '<div class="empty">No Claude projects found.<br><br>Start a Claude Code conversation to see it here.</div>';
+        listEl.innerHTML = '<div class="empty">No Claude or Codex conversations found.<br><br>Start a Claude Code or Codex conversation to see it here.</div>';
         return;
       }
 
@@ -559,7 +589,11 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
             if (file.summary) {
               html += '<div class="file-summary">' + highlightMatch(file.summary, filter) + '</div>';
             }
-            html += '<div class="file-meta">' + escapeHtml(file.size) + ' • ' + escapeHtml(file.date) + '</div>';
+            const sourceParts = [file.date, file.source];
+            if (file.profile) {
+              sourceParts.push(file.profile);
+            }
+            html += '<div class="file-meta">' + escapeHtml(file.size) + ' • ' + sourceParts.map(escapeHtml).join(' · ') + '</div>';
             html += '</div>';
           }
         }
